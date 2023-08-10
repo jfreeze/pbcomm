@@ -12,7 +12,7 @@ defmodule Pbcomm do
       :world
 
   """
-  def hello do
-    :world
+  def connect do
+    Node.connect(:"mbp@192.168.100.172")
   end
 end
