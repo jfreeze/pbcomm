@@ -10,6 +10,8 @@ defmodule Pbcomm.Application do
     children = [
       # Starts a worker by calling: Pbcomm.Worker.start_link(arg)
       # {Pbcomm.Worker, arg}
+      {Phoenix.PubSub, name: Pbcomm.PubSub},
+      Pbcomm.Message
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
