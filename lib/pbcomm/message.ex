@@ -1,6 +1,8 @@
 defmodule Pbcomm.Message do
   use GenServer
 
+  @check_interval 1000
+
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
@@ -14,6 +16,7 @@ defmodule Pbcomm.Message do
   def init(_) do
     Phoenix.PubSub.subscribe(Pbcomm.PubSub, "messages")
     payload = execute({"pbpaste", []})
+    schedule_check()
     {:ok, %{payload: payload}}
   end
 
@@ -25,9 +28,34 @@ defmodule Pbcomm.Message do
     {:noreply, state}
   end
 
+  def handle_info(:check_pbpaste, %{payload: last_payload} = state) do
+    payload = execute({"pbpaste", []})
+
+    new_state =
+      if payload != last_payload do
+        Phoenix.PubSub.broadcast_from(
+          Pbcomm.PubSub,
+          self(),
+          "messages",
+          {:paste, self(), payload}
+        )
+
+        %{payload: payload}
+      else
+        state
+      end
+
+    schedule_check()
+    {:noreply, new_state}
+  end
+
   # Ignore port closure
   def handle_info(_event, state) do
     {:noreply, state}
+  end
+
+  defp schedule_check do
+    Process.send_after(self(), :check_pbpaste, @check_interval)
   end
 
   defp execute({executable, args}) when is_binary(executable) and is_list(args) do
